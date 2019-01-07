@@ -7,11 +7,10 @@ use ElForastero\Transliterate\Transliteration;
 use SorokinFM\SanitizerInterface;
 
 class FileRequestSanitizer implements SanitizerInterface {
-    public function sanitize(array & $values, string $key, FormRequest $request) {
+    public function sanitize(array & $values, string $key, FormRequest $request, string $params ) {
 
-        $tmp = explode(":",$key);
-        $fileName = $tmp[0];
-        $filePath = $tmp[1];
+        $fileName = $key;
+        $filePath = trim($params,"/");
 
         $file = $request->file($fileName);
         if (!$file) {
@@ -26,6 +25,6 @@ class FileRequestSanitizer implements SanitizerInterface {
 
         $file->move($filePath, $filename);
 
-        $values[$fileName] = $filename;
+        $values[$fileName] = "/" . $filePath . '/' . $filename;
     }
 }

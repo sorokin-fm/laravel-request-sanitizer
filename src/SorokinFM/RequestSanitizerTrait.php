@@ -11,19 +11,36 @@ namespace SorokinFM;
 trait RequestSanitizerTrait
 {
     /**
-     * Retrieve an input item from the request.
+     * Retrieve a sanitized input from the request.
      *
-     * @param  string|null  $key
-     * @param  string|array|null  $default
-     * @return string|array|null
      */
-    public function input($key = null, $default = null)
+    public function sanitize()
     {
-        $values = parent::input($key, $default);
+        $values = parent::input();
+        $files = $this->files->keys();
 
-        foreach( static::SANITIZE_RULES ?? [] as $fieldName => $ruleName ) {
+        foreach( static::SANITIZE_RULES ?? [] as $fieldName => $rule ) {
+            list($ruleName,$ruleParams) = explode(":",$rule . ":");
+
             $sanitizer = SanitizerFactory::create($ruleName);
-            $sanitizer->sanitize($values,$fieldName, $this);
+            if( strpos($fieldName,'*' ) !== false ) {
+                foreach( $values as $key => $value ) {
+                    if( fnmatch($fieldName, $key) ) {
+                        $sanitizer->sanitize($values, $key, $this, $ruleParams);
+                    }
+                }
+                foreach( $files as $fileName ) {
+                    if( fnmatch($fieldName, $fileName) ) {
+                        $sanitizer->sanitize($values, $fileName, $this, $ruleParams);
+                    }
+                }
+            } else {
+                if( isset($files[$fieldName] ) ) {
+                    $sanitizer->sanitize($values, $fieldName, $this, $ruleParams);
+                } else {
+                    $sanitizer->sanitize($values, $fieldName, $this, $ruleParams);
+                }
+            }
         }
 
         return $this->processNulls($values);
@@ -41,6 +58,7 @@ trait RequestSanitizerTrait
                 $values[$key] = null;
             }
         }
+
         return $values;
     }
 

@@ -9,7 +9,7 @@ We all know that the thinner is controller the better it is. And we wanted to ha
         $model->save();
 
         return back()
-            ->with('success', __('Some model have been changed'));
+            ->with('success', __('Some model has been changed'));
     }
 ```
 
@@ -69,26 +69,52 @@ And then, add it to you request class:
 
 ```
 use Illuminate\Foundation\Http\FormRequest;
+use SorokinFM\RequestSanitizerTrait;
 
 class StoreRequest extends FormRequest
 
+    use RequestSanitizerTrait;
     const SANITIZE_RULES = [
         'enabled' => 'checkbox',
-        'picture:path/to/store' => 'file',
+        'picture' => 'file:path/to/store',
     ];
 
     ...
 ```
 
-
-Of course, if you need to define your own Sanitizer, you can implement interface SorokinFM\SanitizerInterface and then specify full class name ( with namespace ) as rule name, for example:
+Now you're ready to use it:
 
 ```
+    public function update(UpdateRequest $request, $id)
+    {
+        /** @var SomeModel $model */
+        $model = SomeModel::find($id);
+        $model->fill($request->sanitize());
+        $model->save();
+
+        return back()
+            ->with('success', __('Some model has been changed'));
+    }
+```
+
+Of course, if you need to define your own sanitizer, you can implement interface SorokinFM\SanitizerInterface and then specify full class name ( with namespace ) as rule name, for example:
+
+```
+    use RequestSanitizerTrait;
     const SANITIZE_RULES = [
         'enabled' => 'checkbox',
-        'picture:path/to/store' => 'file',
+        'picture' => 'file:path/to/store',
         'custom_data' => '\App\Sanitizers\CustomRequestSanitizer',
     ];
 ```
 
-So after that all magic happens directly in your requests.
+And one more thing. You also can use wildcards at field names. It will be useful at localization, when you don't know all names of field:
+
+```
+    use RequestSanitizerTrait;
+    const SANITIZE_RULES = [
+        'enabled' => 'checkbox',
+        'picture:*' => 'file:path/to/store',
+        'custom_data' => '\App\Sanitizers\CustomRequestSanitizer',
+    ];
+```
